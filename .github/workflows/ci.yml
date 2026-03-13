@@ -127,8 +127,6 @@ jobs:
           POSTGRES_PASSWORD=dataflow123 \
           python -m load.postgres_loader
 
-      - name: Set up dbt
-        run: pip install dbt-postgres==1.7.4
 
       - name: Update profiles.yml for CI
         run: |
