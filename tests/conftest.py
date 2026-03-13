@@ -1,15 +1,23 @@
+import os
 import pytest
-from unittest.mock import MagicMock, patch
+import psycopg2
+import psycopg2.extras
+from unittest.mock import MagicMock
 
 
-# ── Sample data fixtures ────────────────────────────────────────────────────
+# ── Test DB connection string ────────────────────────────────────────────────
+
+TEST_DB = "postgresql://zafff:dataflow123@localhost:5436/dataflow_test_db"
+
+
+# ── Sample data fixtures ─────────────────────────────────────────────────────
 
 @pytest.fixture
 def sample_customers():
     return [
         {
             "customer_id": 1,
-            "name":        "Zafff",
+            "name":        "zafff",
             "email":       "zafff@test.com",
             "country":     "India",
             "signup_date": "2024-01-15T10:30:00",
@@ -29,7 +37,7 @@ def sample_orders():
     return [
         {
             "customer_id":   1,
-            "customer_name": "Zafff",
+            "customer_name": "zafff",
             "product":       "Laptop",
             "quantity":      1,
             "unit_price":    999.99,
@@ -52,14 +60,11 @@ def sample_orders():
     ]
 
 
-# ── Mock DB connection fixture ──────────────────────────────────────────────
+# ── Mock DB fixture (unit tests) ─────────────────────────────────────────────
 
 @pytest.fixture
 def mock_db(mocker):
-    """
-    Patches psycopg2.connect so no real DB is needed in unit tests.
-    Returns the mock cursor so tests can assert calls on it.
-    """
+    """Patches psycopg2.connect — no real DB needed."""
     mock_cur  = MagicMock()
     mock_conn = MagicMock()
 
@@ -72,3 +77,28 @@ def mock_db(mocker):
     mocker.patch("psycopg2.extras.execute_batch")
 
     return mock_cur
+
+
+# ── Real DB fixtures (integration tests) ────────────────────────────────────
+
+@pytest.fixture(scope="session")
+def db_conn():
+    """Real connection to test DB. Requires docker compose up db-test."""
+    conn = psycopg2.connect(TEST_DB)
+    yield conn
+    conn.close()
+
+
+@pytest.fixture(autouse=False)
+def clean_tables(db_conn):
+    """Wipes tables before each integration test — fresh start every time."""
+    with db_conn.cursor() as cur:
+        cur.execute("TRUNCATE TABLE raw_layer.orders RESTART IDENTITY CASCADE")
+        cur.execute("TRUNCATE TABLE raw_layer.customers RESTART IDENTITY CASCADE")
+    db_conn.commit()
+    yield
+    # clean up after test too
+    with db_conn.cursor() as cur:
+        cur.execute("TRUNCATE TABLE raw_layer.orders RESTART IDENTITY CASCADE")
+        cur.execute("TRUNCATE TABLE raw_layer.customers RESTART IDENTITY CASCADE")
+    db_conn.commit()

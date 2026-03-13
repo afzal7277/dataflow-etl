@@ -21,6 +21,23 @@ services:
       timeout: 5s
       retries: 5
 
+  db-test:
+    image: postgres:15
+    container_name: dataflow-postgres-test
+    environment:
+      POSTGRES_USER: zafff
+      POSTGRES_PASSWORD: dataflow123
+      POSTGRES_DB: dataflow_test_db
+    ports:
+      - "5436:5432"
+    volumes:
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zafff -d dataflow_test_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   pipeline:
     build:
       context: .
