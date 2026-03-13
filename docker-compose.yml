@@ -49,5 +49,21 @@ services:
       - DBT_PROFILES_DIR=/usr/app/dbt
     command: ["dbt", "run"]
 
+  ge:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: dataflow-ge
+    env_file: .env
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    command: ["python", "-m", "great_expectations.cli"]
+
 volumes:
   postgres_data:
