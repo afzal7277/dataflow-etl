@@ -1,0 +1,44 @@
+version: 2
+
+sources:
+  - name: raw_layer
+    schema: raw_layer
+    tables:
+      - name: orders
+      - name: customers
+
+models:
+  - name: stg_customers
+    description: "Cleaned customers from raw layer"
+    columns:
+      - name: customer_id
+        description: "Primary key"
+        tests:
+          - unique
+          - not_null
+      - name: email
+        tests:
+          - not_null
+      - name: country
+        tests:
+          - not_null
+
+  - name: stg_orders
+    description: "Cleaned orders from raw layer"
+    columns:
+      - name: order_id
+        description: "Primary key"
+        tests:
+          - unique
+          - not_null
+      - name: status
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['pending', 'shipped', 'delivered', 'cancelled']
+      - name: total_amount
+        tests:
+          - not_null
+      - name: customer_id
+        tests:
+          - not_null

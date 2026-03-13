@@ -1,0 +1,23 @@
+version: 2
+
+models:
+  - name: mart_customer_orders
+    description: "Orders enriched with customer details"
+    columns:
+      - name: order_id
+        tests:
+          - unique
+          - not_null
+      - name: total_amount
+        tests:
+          - not_null
+
+  - name: mart_daily_revenue
+    description: "Daily revenue aggregated by country and product"
+    columns:
+      - name: order_date
+        tests:
+          - not_null
+      - name: total_revenue
+        tests:
+          - not_null

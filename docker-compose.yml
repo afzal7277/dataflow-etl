@@ -45,6 +45,8 @@ services:
       - ./dbt:/usr/app/dbt
       - ./dbt/profiles.yml:/root/.dbt/profiles.yml
     working_dir: /usr/app/dbt
+    environment:
+      - DBT_PROFILES_DIR=/usr/app/dbt
     command: ["dbt", "run"]
 
 volumes:
