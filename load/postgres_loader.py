@@ -13,9 +13,9 @@ def get_connection():
     """Return a psycopg2 connection using env vars."""
     return psycopg2.connect(
         host=os.getenv("POSTGRES_HOST", "localhost"),
-        port=os.getenv("POSTGRES_PORT", 5432),
+        port=os.getenv("POSTGRES_PORT", 5435),
         dbname=os.getenv("POSTGRES_DB", "dataflow_db"),
-        user=os.getenv("POSTGRES_USER", "afzal"),
+        user=os.getenv("POSTGRES_USER", "zafff"),
         password=os.getenv("POSTGRES_PASSWORD", "dataflow123"),
     )
 
@@ -24,7 +24,7 @@ UPSERT_CUSTOMERS = """
     INSERT INTO raw_layer.customers
         (customer_id, name, email, country, signup_date)
     VALUES
-        %(customer_id)s, %(name)s, %(email)s, %(country)s, %(signup_date)s)
+        (%(customer_id)s, %(name)s, %(email)s, %(country)s, %(signup_date)s)
     ON CONFLICT (customer_id) DO UPDATE SET
         name        = EXCLUDED.name,
         email       = EXCLUDED.email,

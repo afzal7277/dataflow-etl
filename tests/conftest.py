@@ -9,8 +9,8 @@ def sample_customers():
     return [
         {
             "customer_id": 1,
-            "name":        "Afzal Zafar",
-            "email":       "afzal@test.com",
+            "name":        "Zafff",
+            "email":       "zafff@test.com",
             "country":     "India",
             "signup_date": "2024-01-15T10:30:00",
         },
@@ -29,7 +29,7 @@ def sample_orders():
     return [
         {
             "customer_id":   1,
-            "customer_name": "Afzal Zafar",
+            "customer_name": "Zafff",
             "product":       "Laptop",
             "quantity":      1,
             "unit_price":    999.99,
