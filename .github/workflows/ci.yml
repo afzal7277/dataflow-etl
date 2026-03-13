@@ -1,0 +1,163 @@
+name: dataflow-etl CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      db-test:
+        image: postgres:15
+        env:
+          POSTGRES_USER: zafff
+          POSTGRES_PASSWORD: dataflow123
+          POSTGRES_DB: dataflow_test_db
+        ports:
+          - 5436:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+      db:
+        image: postgres:15
+        env:
+          POSTGRES_USER: zafff
+          POSTGRES_PASSWORD: dataflow123
+          POSTGRES_DB: dataflow_db
+        ports:
+          - 5435:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Init test DB schema
+        run: |
+          pip install psycopg2-binary
+          PGPASSWORD=dataflow123 psql \
+            -h localhost -p 5436 \
+            -U zafff -d dataflow_test_db \
+            -f docker/init.sql
+
+      - name: Init main DB schema
+        run: |
+          PGPASSWORD=dataflow123 psql \
+            -h localhost -p 5435 \
+            -U zafff -d dataflow_db \
+            -f docker/init.sql
+
+      - name: Run unit tests
+        run: pytest tests/unit/ -v
+
+      - name: Run integration tests
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "5436"
+          POSTGRES_DB: dataflow_test_db
+          POSTGRES_USER: zafff
+          POSTGRES_PASSWORD: dataflow123
+        run: pytest tests/integration/ -v -m integration
+
+      - name: Load data into main DB
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "5435"
+          POSTGRES_DB: dataflow_db
+          POSTGRES_USER: zafff
+          POSTGRES_PASSWORD: dataflow123
+        run: python -m load.postgres_loader
+
+      - name: Run Great Expectations validation
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "5435"
+          POSTGRES_DB: dataflow_db
+          POSTGRES_USER: zafff
+          POSTGRES_PASSWORD: dataflow123
+        run: python great_expectations/ge_validate.py
+
+  dbt-test:
+    runs-on: ubuntu-latest
+    needs: test
+
+    services:
+      db:
+        image: postgres:15
+        env:
+          POSTGRES_USER: zafff
+          POSTGRES_PASSWORD: dataflow123
+          POSTGRES_DB: dataflow_db
+        ports:
+          - 5435:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Init DB schema and load data
+        run: |
+          pip install psycopg2-binary python-dotenv faker sqlalchemy pandas
+          PGPASSWORD=dataflow123 psql \
+            -h localhost -p 5435 \
+            -U zafff -d dataflow_db \
+            -f docker/init.sql
+          POSTGRES_HOST=localhost \
+          POSTGRES_PORT=5435 \
+          POSTGRES_DB=dataflow_db \
+          POSTGRES_USER=zafff \
+          POSTGRES_PASSWORD=dataflow123 \
+          python -m load.postgres_loader
+
+      - name: Set up dbt
+        run: pip install dbt-postgres==1.7.4
+
+      - name: Update profiles.yml for CI
+        run: |
+          cat > dbt/profiles.yml << 'EOF'
+          dataflow_etl:
+            target: dev
+            outputs:
+              dev:
+                type: postgres
+                host: localhost
+                port: 5435
+                dbname: dataflow_db
+                user: zafff
+                password: dataflow123
+                schema: staging
+                threads: 4
+          EOF
+
+      - name: Install dbt packages
+        run: cd dbt && dbt deps
+
+      - name: Run dbt models
+        run: cd dbt && dbt run --profiles-dir .
+
+      - name: Run dbt tests
+        run: cd dbt && dbt test --profiles-dir .
