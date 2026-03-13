@@ -1,0 +1,14 @@
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+dist/
+.venv/
+venv/
+great_expectations/uncommitted/
+great_expectations/.ge_store_backend_id
+dbt/target/
+dbt/logs/
+dbt/.user.yml
+*.log

@@ -1,0 +1,16 @@
+[project]
+name = "dataflow-etl"
+version = "0.1.0"
+description = "ETL pipeline with dbt and Great Expectations"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: marks tests as integration tests (need DB running)",
+    "unit: marks tests as unit tests"
+]
+
+[tool.coverage.run]
+source = ["extract", "load"]
+omit = ["tests/*"]
