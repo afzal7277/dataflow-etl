@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
 
   db:
@@ -44,12 +42,15 @@ services:
       dockerfile: docker/Dockerfile
     container_name: dataflow-pipeline
     env_file: .env
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
     depends_on:
       db:
         condition: service_healthy
     volumes:
       - .:/app
-    command: ["python", "-m", "extract.generator"]
+    command: ["python", "pipeline.py"]
 
   dbt:
     image: ghcr.io/dbt-labs/dbt-postgres:1.7.11
@@ -65,38 +66,6 @@ services:
     environment:
       - DBT_PROFILES_DIR=/usr/app/dbt
     command: ["dbt", "run"]
-
-  ge:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
-    container_name: dataflow-ge
-    env_file: .env
-    environment:
-      - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
-    depends_on:
-      db:
-        condition: service_healthy
-    volumes:
-      - .:/app
-    command: ["python", "-m", "great_expectations.cli"]
-
-  pipeline-full:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
-    container_name: dataflow-pipeline-full
-    env_file: .env
-    environment:
-      - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
-    depends_on:
-      db:
-        condition: service_healthy
-    volumes:
-      - .:/app
-    command: ["python", "pipeline.py"]
 
 volumes:
   postgres_data:
